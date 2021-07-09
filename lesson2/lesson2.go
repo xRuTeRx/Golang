@@ -7,6 +7,6 @@ import (
 )
 
 func main() {
-	fmt.Println(fib.Findf(10))
+	fmt.Println(fib.Findf(3))
 	fmt.Println(fib.Findf(20))
 }
