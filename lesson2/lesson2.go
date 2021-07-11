@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-
 	"lesson2/fib"
 )
 
 func main() {
-	fmt.Println(fib.Findf(3))
-	fmt.Println(fib.Findf(20))
+	defer fmt.Println("Done!")
+	fmt.Println("20 Fibanachi mbers")
+	fib.OutFibanacciLine(20)
+
 }
