@@ -22,24 +22,24 @@ func DescribeShape(s Shape) {
 	fmt.Printf("Area: %.2f\n", s.Area())
 	fmt.Printf("Perimeter: %.2f\n", s.Perimeter())
 }
-func (s Circle) String() string {
-	return fmt.Sprintf("Cirlce: radius %v", s.radius)
+func (c Circle) String() string {
+	return fmt.Sprintf("Cirlce: radius %v", c.radius)
 }
-func (s Rectangle) String() string {
-	return fmt.Sprintf("Rectangle with height %v and width %v", s.height, s.width)
+func (r Rectangle) String() string {
+	return fmt.Sprintf("Rectangle with height %v and width %v", r.height, r.width)
 }
 
-func (a Rectangle) Area() float64 {
-	return a.height * a.width
+func (r Rectangle) Area() float64 {
+	return r.height * r.width
 }
-func (a Circle) Area() float64 {
-	return math.Pi * math.Pow(a.radius, 2)
+func (c Circle) Area() float64 {
+	return math.Pi * math.Pow(c.radius, 2)
 }
-func (a Rectangle) Perimeter() float64 {
-	return 2 * (a.height + a.width)
+func (r Rectangle) Perimeter() float64 {
+	return 2 * (r.height + r.width)
 }
-func (a Circle) Perimeter() float64 {
-	return 2 * math.Pi * a.radius
+func (c Circle) Perimeter() float64 {
+	return 2 * math.Pi * c.radius
 }
 func main() {
 
