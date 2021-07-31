@@ -6,20 +6,20 @@ import (
 	"net/http"
 )
 
-func handler(w http.ResponseWriter, r *http.Request) {
+type OutStruct struct {
+	Host       string
+	UserAgent  string
+	RequestUrl string
+	Headers    http.Header
+}
 
-	fmt.Fprintln(w, "{")
-	fmt.Fprintln(w, "	\"Host\": "+r.Host+",")
-	fmt.Fprintln(w, "	\"UserAgent\": "+r.UserAgent()+",")
-	fmt.Fprintln(w, "	\"RequestURL\": "+r.URL.Path+",")
-	fmt.Fprintln(w, "	\"Headers\": {")
-	for k, v := range r.Header {
-		fmt.Fprint(w, "		\""+k+"\" : ")
-		fmt.Fprint(w, v)
-		fmt.Fprintln(w, ",")
-	}
-	fmt.Fprintln(w, "	} ")
-	fmt.Fprintln(w, "}")
+func handler(w http.ResponseWriter, r *http.Request) {
+	var outS OutStruct
+	outS.Host = r.Host
+	outS.UserAgent = r.UserAgent()
+	outS.RequestUrl = r.URL.Path
+	outS.Headers = r.Header
+	fmt.Fprint(w, outS)
 
 }
 
