@@ -14,11 +14,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	switch r.Method {
-	case "GET":
+	case http.MethodGet:
 		body, _ := ioutil.ReadFile("../form/form.html")
 		fmt.Fprint(w, string(body))
 
-	case "POST":
+	case http.MethodPost:
 		cookie := http.Cookie{
 			Name:  "token",
 			Value: r.PostFormValue("name") + ":" + r.PostFormValue("address"),
