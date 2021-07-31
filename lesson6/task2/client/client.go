@@ -2,47 +2,60 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
-	"net/url"
+	"net"
 	"os"
 	"strings"
+	"time"
 )
 
-// form key for new message
-const keyString = "InputString"
-
 func main() {
+	// create a dialer
+	var d net.Dialer
 	// server port number
-	const port = 8080
-	// server address
-	address := fmt.Sprintf("http://127.0.0.1:%d", port)
+	const port = 8081
 
-	fmt.Printf("Connecting to server %s\n", address)
 	for {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second)*10)
+		defer cancel()
 
+		// connect to server with context
+		conn, err := d.DialContext(ctx, "tcp", fmt.Sprintf(":%d", port))
+		if err != nil {
+			log.Fatal(err)
+		}
+		// call close to connection when we end with our tasks
+		defer conn.Close()
+		// our msg
 		r := bufio.NewReader(os.Stdin)
 		fmt.Print("Enter value: ")
-		inputValue, _ := r.ReadString('\n')
-		inputValue = strings.TrimSpace(inputValue)
-		if inputValue == "exit" {
+		message, _ := r.ReadString('\n')
+		message = strings.TrimSpace(message)
+		if message == "exit" {
 			break
 		}
 
-		// post new message
-		resp, err := http.PostForm(address, url.Values{keyString: {inputValue}})
+		// message[:len(message) - 1] - removes '\n' for logging
+		fmt.Printf("Sending message: %s; to port: %d\n", message, port)
+
+		// create call context that should close when timeout reached
+
+		// send some data to server
+		_, err = conn.Write([]byte(message + "\n"))
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		respBody, err := ioutil.ReadAll(resp.Body)
+		// create buffer and read message from server
+		getMessage, err := bufio.NewReader(conn).ReadString('\n')
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println("Output string : " + string(respBody))
-		fmt.Println("------------------------------------")
+
+		fmt.Printf("Message recieved: %s\n", getMessage[:len(getMessage)-1])
+
 	}
-	fmt.Println("DONE!")
+
 }

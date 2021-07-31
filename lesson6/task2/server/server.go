@@ -1,50 +1,61 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
-	"net/http"
+	"net"
 	"strconv"
 	"strings"
 )
 
-var (
-	// our message
-	message = "Hello there!"
-)
-
-func handler(w http.ResponseWriter, r *http.Request) {
-	// send Not found in such case
-	if r.URL.Path != "/" {
-		http.NotFound(w, r)
-		return
-	}
-	switch r.Method {
-	case http.MethodGet:
-		fmt.Fprint(w, message)
-	case http.MethodPost:
-		// get new value for message
-		message = r.PostFormValue("InputString")
-		i, ok := strconv.Atoi(message)
-		if ok == nil {
-			message = strconv.Itoa(i * 2)
-		} else {
-			message = strings.ToUpper(message)
-		}
-		fmt.Fprint(w, message)
-	default:
-		fmt.Fprintf(w, "Sorry, only GET and POST methods are supported.")
-	}
-}
-
 func main() {
 	// server port number
-	const port = 8080
+	const port = 8081
 
 	fmt.Printf("Launching server on port: %d \n\n", port)
 
-	// set handler for route '/'
-	http.HandleFunc("/", handler)
-	// start server without ending
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
+	// create listener
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		// log error and exit with error code
+		log.Fatal(err)
+	}
+
+	// endless loop for listening connections
+	for {
+		// accept new connection
+		conn, err := ln.Accept()
+		if err != nil {
+			log.Print(err)
+			continue
+		}
+		// serve connection
+		go func(c net.Conn) {
+			// call close function after serving
+			defer c.Close()
+
+			// read string from client(string should end with '\n' symbol)
+			message, err := bufio.NewReader(c).ReadString('\n')
+			if err != nil {
+				log.Print(err)
+				return
+			}
+
+			fmt.Printf("Message received: %s \n", message)
+			message = strings.TrimSpace(message)
+			i, ok := strconv.Atoi(message)
+			if ok == nil {
+				message = strconv.Itoa(i * 2)
+			} else {
+				message = strings.ToUpper(message)
+			}
+
+			_, err = c.Write([]byte(message + "\n"))
+			if err != nil {
+				log.Print(err)
+				return
+			}
+		}(conn)
+	}
 }
