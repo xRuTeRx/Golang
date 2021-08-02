@@ -1,0 +1,18 @@
+version: "2.2"
+services:
+    setcoockie:    
+        # image: set_coockie
+        build: .\setcoockie\
+        ports:
+            - "8080:8080"
+        networks:
+            - webnet       
+    savecoockie:
+        # image: save_coockie
+        build: .\savecoockie\
+        ports:
+            - "8081:8081"
+        networks:
+            - webnet    
+networks:
+    webnet:
