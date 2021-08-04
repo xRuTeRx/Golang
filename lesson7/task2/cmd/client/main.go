@@ -12,7 +12,10 @@ import (
 	"strings"
 )
 
-const keyString = "InputString"
+const (
+	keyString = "InputString"
+	address   = "http://localhost:8081/rpc"
+)
 
 type Request struct {
 	Method string          `json:"method"`
@@ -25,8 +28,6 @@ type jsonParams struct {
 
 func main() {
 
-	const port = 8081
-	address := fmt.Sprintf("http://localhost:%d/rpc", port)
 	defer fmt.Println("DONE!")
 	for {
 

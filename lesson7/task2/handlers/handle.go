@@ -23,6 +23,12 @@ type Response struct {
 	Result interface{} `json:"result"`
 }
 
+const (
+	errReadBody    = "failed to read request body"
+	errReqWrong    = "request format is wrong"
+	errWrongMethod = "method %s is not supported"
+)
+
 func Handle(w http.ResponseWriter, r *http.Request) {
 	req, err := parseRequest(r)
 	if err != nil {
@@ -43,13 +49,13 @@ func parseRequest(r *http.Request) (*Request, error) {
 	bodyData, err := io.ReadAll(body)
 	if err != nil {
 		log.Print(err.Error())
-		return nil, errors.New("failed to read request body")
+		return nil, errors.New(errReadBody)
 	}
 	req := &Request{}
 
 	if err = json.Unmarshal(bodyData, req); err != nil {
 		log.Print(err.Error())
-		return nil, errors.New("request format is wrong")
+		return nil, errors.New(errReqWrong)
 	}
 
 	return req, nil
@@ -62,7 +68,7 @@ func handle(req Request) (interface{}, error) {
 	}
 	h, ok := handlers[req.Method]
 	if !ok {
-		return nil, errors.New(fmt.Sprintf("method %s is not supported", req.Method))
+		return nil, errors.New(fmt.Sprintf(errWrongMethod, req.Method))
 	}
 	resp, err := h(req.Params)
 	if err != nil {

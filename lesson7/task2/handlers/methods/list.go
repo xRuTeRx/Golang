@@ -11,7 +11,7 @@ type listParams struct {
 func List(params json.RawMessage) (interface{}, error) {
 	p := listParams{}
 	if err := json.Unmarshal(params, &p); err != nil {
-		return "", errors.New("wrong params sent, expected {name:string}")
+		return "", errors.New(errWromgParam)
 	}
 	return Peoples, nil
 }
