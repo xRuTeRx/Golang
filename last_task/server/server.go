@@ -25,14 +25,9 @@ const (
 	table       = "requests"
 	userDB      = "root"
 	pwdDB       = "root"
-	hostDB      = "localhost"
+	hostDB      = "database"
 	weatherHost = "https://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s" //with get
 )
-
-type SS struct {
-	NoErr bool        `json:"noErr"`
-	Mes   interface{} `json:"mes"`
-}
 
 type Request struct {
 	ID          int    `db:"id"`
@@ -66,19 +61,20 @@ func (db *DB) ListAll() ([]Request, error) {
 	return rowsToRequest(rows)
 }
 func (db *DB) AddRequest(cityName string, time string, temperature string) (int64, error) {
-	q := "INSERT INTO requests (city, time, temperature) VALUES ($1, $2, $3);"
-	res, err := db.Conn.Exec(q, cityName, time, temperature)
+	q := "INSERT INTO requests (city, time, temperature) VALUES ($1, $2, $3) RETURNING id;"
+	var insertedId int64
+	err := db.Conn.QueryRow(q, cityName, time, temperature).Scan(&insertedId)
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to add request")
 	}
-	insertedId, _ := res.LastInsertId()
+
 	return insertedId, nil
 }
 
 func (db *DB) UpdateRequestTemp(id int64, temperature string) error {
-	q := "UPDATE  requests SET  temperature=$1 WHERE ID=$2 ;"
+	q := "UPDATE  requests SET  temperature=$1 WHERE id=$2 ;"
 	if _, err := db.Conn.Exec(q, temperature, id); err != nil {
-		return errors.Wrap(err, "failed to add request")
+		return errors.Wrap(err, "failed to update request")
 	}
 	return nil
 }
@@ -95,88 +91,83 @@ func ConnToDB() (*DB, error) {
 	return db, nil
 
 }
-func writeToWeb(w http.ResponseWriter, mes interface{}, cod bool) {
-	s := &SS{
-		Mes:   mes,
-		NoErr: cod,
-	}
-	b, err := json.Marshal(s)
+func weatherFromOpenweathermap(w http.ResponseWriter, cityName string) ([]byte, error) {
+	url := fmt.Sprintf(weatherHost, cityName, id_key)
+	resp, err := http.Get(url)
 	if err != nil {
-		return
+		return nil, err
 	}
-	w.Write(b)
-}
 
+	defer resp.Body.Close()
+
+	var result map[string]interface{}
+	json.NewDecoder(resp.Body).Decode(&result)
+
+	var res []byte
+	if resp.StatusCode != 200 {
+		message := result["message"]
+		res, err = json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+		http.Error(w, string(res), resp.StatusCode)
+
+	} else {
+		res, err = json.Marshal(result["main"])
+		if err != nil {
+			return nil, err
+		}
+		err = json.Unmarshal(res, &result)
+		if err != nil {
+			return nil, err
+		}
+		res, err = json.Marshal(result["temp"])
+		if err != nil {
+			return nil, err
+		}
+		w.Write(res)
+	}
+	return res, nil
+}
 func handlerWeather(w http.ResponseWriter, r *http.Request) {
 	// send Not found in such case
 	if r.URL.Path != "/weather" {
-		writeToWeb(w, "Page not found", false)
+		http.NotFound(w, r)
 		return
 	}
 	switch r.Method {
 	case http.MethodGet:
 		db, err := ConnToDB()
 		if err != nil {
-			writeToWeb(w, err, false)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		defer db.Conn.Close()
 		cityName := r.FormValue("city")
 		insertedID, err := db.AddRequest(cityName, time.Now().String(), "")
 		if err != nil {
-			writeToWeb(w, err, false)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
-		url := fmt.Sprintf(weatherHost, cityName, id_key)
-		resp, err := http.Get(url)
+		res, err := weatherFromOpenweathermap(w, cityName)
 		if err != nil {
-			writeToWeb(w, err, false)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
-		defer resp.Body.Close()
-
-		var result map[string]interface{}
-		json.NewDecoder(resp.Body).Decode(&result)
-		cod, _ := json.Marshal(result["cod"])
-		if string(cod) != "200" {
-			res := result["message"]
-			writeToWeb(w, res, false)
-		} else {
-			res, err := json.Marshal(result["main"])
-			if err != nil {
-				writeToWeb(w, err, false)
-				return
-			}
-			err = json.Unmarshal(res, &result)
-			if err != nil {
-				writeToWeb(w, err, false)
-				return
-			}
-			res, err = json.Marshal(result["temp"])
-			if err != nil {
-				writeToWeb(w, err, false)
-				return
-			}
-
-			err = db.UpdateRequestTemp(insertedID, string(res))
-			if err != nil {
-				writeToWeb(w, err, false)
-				return
-			}
-			writeToWeb(w, string(res), true)
+		err = db.UpdateRequestTemp(insertedID, string(res))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	default:
-		writeToWeb(w, "Sorry, only GET methods are supported.", false)
+		http.Error(w, "Sorry, only GET methods are supported.", http.StatusNotImplemented)
 	}
 }
 
 func handlerListRequests(w http.ResponseWriter, r *http.Request) {
 	// send Not found in such case
 	if r.URL.Path != "/listRequests" {
-
-		writeToWeb(w, "Page not found", false)
+		http.NotFound(w, r)
 		return
 	}
 	switch r.Method {
@@ -184,24 +175,30 @@ func handlerListRequests(w http.ResponseWriter, r *http.Request) {
 		db, err := ConnToDB()
 		defer db.Conn.Close()
 		if err != nil {
-			writeToWeb(w, err, false)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		res, err := db.ListAll()
 		if err != nil {
-			writeToWeb(w, err, false)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		writeToWeb(w, res, true)
+		message, err := json.Marshal(res)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(message)
 
 	default:
-		writeToWeb(w, "Sorry, only GET methods are supported.", false)
+		http.Error(w, "Sorry, only GET methods are supported.", http.StatusNotImplemented)
 	}
 }
 
 func main() {
+	fmt.Println("start")
 	http.HandleFunc("/weather", handlerWeather)
 	http.HandleFunc("/listRequests", handlerListRequests)
 	// start server without ending
