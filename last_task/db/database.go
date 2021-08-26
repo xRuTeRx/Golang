@@ -38,7 +38,7 @@ func (db *DB) ListAll() ([]st.Request, error) {
 	return rowsToRequest(rows)
 }
 func (db *DB) AddRequest(cityName string, time string, temperature string) (int64, error) {
-	q := "INSERT INTO requests (City, RequestTime, Temperature) VALUES ($1, $2, $3) RETURNING Id;"
+	q := "INSERT INTO \"requests\" (\"City\", \"RequestTime\", \"Temperature\") VALUES ($1, $2, $3) RETURNING \"Id\";"
 	var insertedId int64
 	err := db.Conn.QueryRow(q, cityName, time, temperature).Scan(&insertedId)
 	if err != nil {
@@ -49,7 +49,7 @@ func (db *DB) AddRequest(cityName string, time string, temperature string) (int6
 }
 
 func (db *DB) UpdateRequestTemp(id int64, temperature string) error {
-	q := "UPDATE  requests SET  Temperature=$1 WHERE Id=$2 ;"
+	q := "UPDATE  requests SET  \"Temperature\"=$1 WHERE \"Id\"=$2 ;"
 	if _, err := db.Conn.Exec(q, temperature, id); err != nil {
 		return errors.Wrap(err, "failed to update request")
 	}
