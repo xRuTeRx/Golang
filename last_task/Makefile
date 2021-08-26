@@ -1,5 +1,5 @@
 postgres:
-	docker run --name=adress_book_db  -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=root  postgres
+	docker run --name=last_task_database_1  -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=root  postgres
 createdb: 
 	docker exec -it  last_task_database_1 createdb --username=root --owner=root requests
 	

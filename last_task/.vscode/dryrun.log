@@ -1,0 +1,4 @@
+make: Entering directory 'f:/rabota/Git/src/github.com/xruterx/golang/last_task'
+docker run --name=adress_book_db  -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=root  postgres
+make: Leaving directory 'f:/rabota/Git/src/github.com/xruterx/golang/last_task'
+ 

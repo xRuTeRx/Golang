@@ -7,14 +7,9 @@ import (
 	"net/http"
 	"os"
 	"strings"
-)
 
-type Request struct {
-	ID          int    `json:"ID"`
-	City        string `json:"City"`
-	RequestTime string `json:"RequestTime"`
-	Temperature string `json:"Temperature"`
-}
+	st "github.com/xruterx/golang/last_task/db/structure"
+)
 
 const (
 	host = "localhost"
@@ -39,14 +34,19 @@ func main() {
 				return
 			}
 			defer resp.Body.Close()
-			var result []Request
-			err = json.NewDecoder(resp.Body).Decode(&result)
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
+			if resp.StatusCode != 200 {
+				fmt.Println(resp.Status)
 
-			fmt.Println(result)
+			} else {
+				var result []st.Request
+				err = json.NewDecoder(resp.Body).Decode(&result)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+
+				fmt.Println(result)
+			}
 
 		case "2":
 			//r := bufio.NewReader(os.Stdin)
@@ -61,13 +61,14 @@ func main() {
 			}
 			defer resp.Body.Close()
 			if resp.StatusCode != 200 {
+
 				var result string
 				err = json.NewDecoder(resp.Body).Decode(&result)
 				if err != nil {
-					fmt.Println(err)
-					return
+					fmt.Println(resp.Status)
+				} else {
+					fmt.Printf("%s\n", result)
 				}
-				fmt.Printf("%s\n", result)
 			} else {
 				var result float64
 				err = json.NewDecoder(resp.Body).Decode(&result)
